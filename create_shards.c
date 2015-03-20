@@ -599,6 +599,7 @@ SupportFunctionForColumn(Var *partitionColumn, Oid accessMethodId,
 {
 	Oid operatorFamilyId = InvalidOid;
 	Oid supportFunctionOid = InvalidOid;
+	Oid operatorClassInputType = InvalidOid;
 	Oid columnOid = partitionColumn->vartype;
 	Oid operatorClassId = GetDefaultOpClass(columnOid, accessMethodId);
 
@@ -614,7 +615,9 @@ SupportFunctionForColumn(Var *partitionColumn, Oid accessMethodId,
 	}
 
 	operatorFamilyId = get_opclass_family(operatorClassId);
-	supportFunctionOid = get_opfamily_proc(operatorFamilyId, columnOid, columnOid,
+	operatorClassInputType = get_opclass_input_type(operatorClassId);
+	supportFunctionOid = get_opfamily_proc(operatorFamilyId, operatorClassInputType,
+										   operatorClassInputType,
 										   supportFunctionNumber);
 
 	return supportFunctionOid;
