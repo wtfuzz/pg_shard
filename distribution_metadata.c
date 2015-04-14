@@ -367,6 +367,7 @@ PartitionColumn(Oid distributedTableId)
 									  tupleDescriptor, &isNull);
 		char *partitionColumnName = TextDatumGetCString(keyDatum);
 
+		/* TODO: Just directly read the value to a Var for CitusDB */
 		partitionColumn = ColumnNameToColumn(distributedTableId, partitionColumnName);
 	}
 	else
