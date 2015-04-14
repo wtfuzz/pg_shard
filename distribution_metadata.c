@@ -56,6 +56,10 @@
  */
 static List *ShardIntervalListCache = NIL;
 
+static char *MetadataSchemaName = METADATA_SCHEMA_NAME;
+static char *PartitionTableName = PARTITION_TABLE_NAME;
+static char *ShardTableName = SHARD_TABLE_NAME;
+static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
 
 /* local function forward declarations */
 static void LoadShardIntervalRow(int64 shardId, Oid *relationId,
@@ -135,8 +139,8 @@ LoadShardIntervalList(Oid distributedTableId)
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
-	heapRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, SHARD_TABLE_NAME, -1);
-	indexRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, SHARD_RELATION_INDEX_NAME, -1);
+	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardTableName, -1);
+	indexRangeVar = makeRangeVar(MetadataSchemaName, SHARD_RELATION_INDEX_NAME, -1);
 
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 	indexRelation = relation_openrv(indexRangeVar, AccessShareLock);
@@ -271,8 +275,8 @@ LoadShardPlacementList(int64 shardId)
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
-	heapRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, SHARD_PLACEMENT_TABLE_NAME, -1);
-	indexRangeVar = makeRangeVar(METADATA_SCHEMA_NAME,
+	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementTableName, -1);
+	indexRangeVar = makeRangeVar(MetadataSchemaName,
 								 SHARD_PLACEMENT_SHARD_INDEX_NAME, -1);
 
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
@@ -327,7 +331,7 @@ PartitionColumn(Oid distributedTableId)
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
-	heapRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, PARTITION_TABLE_NAME, -1);
+	heapRangeVar = makeRangeVar(MetadataSchemaName, PartitionTableName, -1);
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 
 	ScanKeyInit(&scanKey[0], ATTR_NUM_PARTITION_RELATION_ID, InvalidStrategy,
@@ -379,7 +383,7 @@ PartitionType(Oid distributedTableId)
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
-	heapRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, PARTITION_TABLE_NAME, -1);
+	heapRangeVar = makeRangeVar(MetadataSchemaName, PartitionTableName, -1);
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 
 	ScanKeyInit(&scanKey[0], ATTR_NUM_PARTITION_RELATION_ID, InvalidStrategy,
@@ -427,7 +431,7 @@ IsDistributedTable(Oid tableId)
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
-	heapRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, PARTITION_TABLE_NAME, -1);
+	heapRangeVar = makeRangeVar(MetadataSchemaName, PartitionTableName, -1);
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 
 	ScanKeyInit(&scanKey[0], ATTR_NUM_PARTITION_RELATION_ID, InvalidStrategy,
@@ -459,7 +463,7 @@ DistributedTablesExist(void)
 	HeapScanDesc scanDesc = NULL;
 	HeapTuple heapTuple = NULL;
 
-	heapRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, PARTITION_TABLE_NAME, -1);
+	heapRangeVar = makeRangeVar(MetadataSchemaName, PartitionTableName, -1);
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 
 	scanDesc = heap_beginscan(heapRelation, SnapshotSelf, 0, NULL);
@@ -540,8 +544,8 @@ LoadShardIntervalRow(int64 shardId, Oid *relationId, char **minValue,
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
-	heapRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, SHARD_TABLE_NAME, -1);
-	indexRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, SHARD_PKEY_INDEX_NAME, -1);
+	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardTableName, -1);
+	indexRangeVar = makeRangeVar(MetadataSchemaName, SHARD_PKEY_INDEX_NAME, -1);
 
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 	indexRelation = relation_openrv(indexRangeVar, AccessShareLock);
@@ -639,7 +643,7 @@ InsertPartitionRow(Oid distributedTableId, char partitionType, text *partitionKe
 	values[ATTR_NUM_PARTITION_KEY - 1] = PointerGetDatum(partitionKeyText);
 
 	/* open the partition relation and insert new tuple */
-	partitionRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, PARTITION_TABLE_NAME, -1);
+	partitionRangeVar = makeRangeVar(MetadataSchemaName, PartitionTableName, -1);
 	partitionRelation = heap_openrv(partitionRangeVar, RowExclusiveLock);
 
 	tupleDescriptor = RelationGetDescr(partitionRelation);
@@ -691,7 +695,7 @@ InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 	}
 
 	/* open shard relation and insert new tuple */
-	shardRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, SHARD_TABLE_NAME, -1);
+	shardRangeVar = makeRangeVar(MetadataSchemaName, ShardTableName, -1);
 	shardRelation = heap_openrv(shardRangeVar, RowExclusiveLock);
 
 	tupleDescriptor = RelationGetDescr(shardRelation);
@@ -732,8 +736,8 @@ InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
 	values[ATTR_NUM_SHARD_PLACEMENT_NODE_PORT - 1] = UInt32GetDatum(nodePort);
 
 	/* open shard placement relation and insert new tuple */
-	shardPlacementRangeVar = makeRangeVar(METADATA_SCHEMA_NAME,
-										  SHARD_PLACEMENT_TABLE_NAME, -1);
+	shardPlacementRangeVar = makeRangeVar(MetadataSchemaName,
+										  ShardPlacementTableName, -1);
 	shardPlacementRelation = heap_openrv(shardPlacementRangeVar, RowExclusiveLock);
 
 	tupleDescriptor = RelationGetDescr(shardPlacementRelation);
@@ -764,8 +768,8 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
-	heapRangeVar = makeRangeVar(METADATA_SCHEMA_NAME, SHARD_PLACEMENT_TABLE_NAME, -1);
-	indexRangeVar = makeRangeVar(METADATA_SCHEMA_NAME,
+	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementTableName, -1);
+	indexRangeVar = makeRangeVar(MetadataSchemaName,
 								 SHARD_PLACEMENT_PKEY_INDEX_NAME, -1);
 
 	heapRelation = relation_openrv(heapRangeVar, RowExclusiveLock);
@@ -803,7 +807,7 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 uint64
 NextSequenceId(char *sequenceName)
 {
-	RangeVar *sequenceRangeVar = makeRangeVar(METADATA_SCHEMA_NAME,
+	RangeVar *sequenceRangeVar = makeRangeVar(MetadataSchemaName,
 											  sequenceName, -1);
 	bool failOk = false;
 	Oid sequenceRelationId = RangeVarGetRelid(sequenceRangeVar, NoLock, failOk);
