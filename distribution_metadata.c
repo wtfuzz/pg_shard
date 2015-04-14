@@ -61,11 +61,16 @@ static char *PartitionTableName = PARTITION_TABLE_NAME;
 
 static char *ShardTableName = SHARD_TABLE_NAME;
 static char *ShardRelationIndexName = SHARD_RELATION_INDEX_NAME;
+static int ShardTableAttributeCount = SHARD_TABLE_ATTRIBUTE_COUNT;
+
 static AttrNumber AttrNumShardId = ATTR_NUM_SHARD_ID;
+static AttrNumber AttrNumShardRelationId = ATTR_NUM_SHARD_RELATION_ID;
+static AttrNumber AttrNumShardStorage = ATTR_NUM_SHARD_STORAGE;
+static AttrNumber AttrNumShardMinValue = ATTR_NUM_SHARD_MIN_VALUE;
+static AttrNumber AttrNumShardMaxValue = ATTR_NUM_SHARD_MAX_VALUE;
 
 static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
 static char *ShardPlacementShardIndexName = SHARD_PLACEMENT_SHARD_INDEX_NAME;
-
 
 static AttrNumber AttrNumShardPlacementId = ATTR_NUM_SHARD_PLACEMENT_ID;
 static AttrNumber AttrNumShardPlacementShardId = ATTR_NUM_SHARD_PLACEMENT_SHARD_ID;
@@ -656,6 +661,7 @@ InsertPartitionRow(Oid distributedTableId, char partitionType, text *partitionKe
 
 	values[ATTR_NUM_PARTITION_RELATION_ID - 1] = ObjectIdGetDatum(distributedTableId);
 	values[ATTR_NUM_PARTITION_TYPE - 1] = CharGetDatum(partitionType);
+	/* TODO: When using Citus, use Var representation instead */
 	values[ATTR_NUM_PARTITION_KEY - 1] = PointerGetDatum(partitionKeyText);
 
 	/* open the partition relation and insert new tuple */
@@ -687,28 +693,30 @@ InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 	RangeVar *shardRangeVar = NULL;
 	TupleDesc tupleDescriptor = NULL;
 	HeapTuple heapTuple = NULL;
-	Datum values[SHARD_TABLE_ATTRIBUTE_COUNT];
-	bool isNulls[SHARD_TABLE_ATTRIBUTE_COUNT];
+	Datum values[ShardTableAttributeCount]; /* TODO: tupleDescriptor->nattrs ? */
+	bool isNulls[ShardTableAttributeCount];
 
 	/* form new shard tuple */
 	memset(values, 0, sizeof(values));
 	memset(isNulls, false, sizeof(isNulls));
 
 	values[AttrNumShardId - 1] = Int64GetDatum(shardId);
-	values[ATTR_NUM_SHARD_RELATION_ID - 1] = ObjectIdGetDatum(distributedTableId);
-	values[ATTR_NUM_SHARD_STORAGE - 1] = CharGetDatum(shardStorage);
+	values[AttrNumShardRelationId - 1] = ObjectIdGetDatum(distributedTableId);
+	values[AttrNumShardStorage - 1] = CharGetDatum(shardStorage);
 
 	/* check if shard min/max values are null */
 	if (shardMinValue != NULL && shardMaxValue != NULL)
 	{
-		values[ATTR_NUM_SHARD_MIN_VALUE - 1] = PointerGetDatum(shardMinValue);
-		values[ATTR_NUM_SHARD_MAX_VALUE - 1] = PointerGetDatum(shardMaxValue);
+		values[AttrNumShardMinValue - 1] = PointerGetDatum(shardMinValue);
+		values[AttrNumShardMaxValue - 1] = PointerGetDatum(shardMaxValue);
 	}
 	else
 	{
-		isNulls[ATTR_NUM_SHARD_MIN_VALUE - 1] = true;
-		isNulls[ATTR_NUM_SHARD_MAX_VALUE - 1] = true;
+		isNulls[AttrNumShardMinValue - 1] = true;
+		isNulls[AttrNumShardMaxValue - 1] = true;
 	}
+
+	/* TODO: set shardalias to NULL for CitusDB */
 
 	/* open shard relation and insert new tuple */
 	shardRangeVar = makeRangeVar(MetadataSchemaName, ShardTableName, -1);
