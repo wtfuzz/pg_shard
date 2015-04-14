@@ -60,6 +60,7 @@ static char *MetadataSchemaName = METADATA_SCHEMA_NAME;
 static char *PartitionTableName = PARTITION_TABLE_NAME;
 
 static char *ShardTableName = SHARD_TABLE_NAME;
+static char *ShardPkeyIndexName = SHARD_PKEY_INDEX_NAME;
 static char *ShardRelationIndexName = SHARD_RELATION_INDEX_NAME;
 static int ShardTableAttributeCount = SHARD_TABLE_ATTRIBUTE_COUNT;
 
@@ -564,7 +565,7 @@ LoadShardIntervalRow(int64 shardId, Oid *relationId, char **minValue,
 	HeapTuple heapTuple = NULL;
 
 	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardTableName, -1);
-	indexRangeVar = makeRangeVar(MetadataSchemaName, SHARD_PKEY_INDEX_NAME, -1);
+	indexRangeVar = makeRangeVar(MetadataSchemaName, ShardPkeyIndexName, -1);
 
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 	indexRelation = relation_openrv(indexRangeVar, AccessShareLock);
@@ -581,11 +582,12 @@ LoadShardIntervalRow(int64 shardId, Oid *relationId, char **minValue,
 		TupleDesc tupleDescriptor = RelationGetDescr(heapRelation);
 		bool isNull = false;
 
-		Datum relationIdDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_RELATION_ID,
+		/* TODO: What the heck do I do for shard storage in CitusDB? */
+		Datum relationIdDatum = heap_getattr(heapTuple, AttrNumShardRelationId,
 											 tupleDescriptor, &isNull);
-		Datum minValueDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_MIN_VALUE,
+		Datum minValueDatum = heap_getattr(heapTuple, AttrNumShardMinValue,
 										   tupleDescriptor, &isNull);
-		Datum maxValueDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_MAX_VALUE,
+		Datum maxValueDatum = heap_getattr(heapTuple, AttrNumShardMaxValue,
 										   tupleDescriptor, &isNull);
 
 		/* convert and deep copy row's values */
