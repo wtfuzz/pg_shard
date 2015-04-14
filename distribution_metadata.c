@@ -61,6 +61,10 @@ static char *PartitionTableName = PARTITION_TABLE_NAME;
 static char *ShardTableName = SHARD_TABLE_NAME;
 static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
 
+static char *ShardRelationIndexName = SHARD_RELATION_INDEX_NAME;
+
+static AttrNumber AttrNumShardId = ATTR_NUM_SHARD_ID;
+
 /* local function forward declarations */
 static void LoadShardIntervalRow(int64 shardId, Oid *relationId,
 								 char **minValue, char **maxValue);
@@ -140,7 +144,7 @@ LoadShardIntervalList(Oid distributedTableId)
 	HeapTuple heapTuple = NULL;
 
 	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardTableName, -1);
-	indexRangeVar = makeRangeVar(MetadataSchemaName, SHARD_RELATION_INDEX_NAME, -1);
+	indexRangeVar = makeRangeVar(MetadataSchemaName, ShardRelationIndexName, -1);
 
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 	indexRelation = relation_openrv(indexRangeVar, AccessShareLock);
@@ -158,7 +162,7 @@ LoadShardIntervalList(Oid distributedTableId)
 		TupleDesc tupleDescriptor = RelationGetDescr(heapRelation);
 		bool isNull = false;
 
-		Datum shardIdDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_ID,
+		Datum shardIdDatum = heap_getattr(heapTuple, AttrNumShardId,
 										  tupleDescriptor, &isNull);
 
 		int64 shardId = DatumGetInt64(shardIdDatum);
@@ -678,7 +682,7 @@ InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 	memset(values, 0, sizeof(values));
 	memset(isNulls, false, sizeof(isNulls));
 
-	values[ATTR_NUM_SHARD_ID - 1] = Int64GetDatum(shardId);
+	values[AttrNumShardId - 1] = Int64GetDatum(shardId);
 	values[ATTR_NUM_SHARD_RELATION_ID - 1] = ObjectIdGetDatum(distributedTableId);
 	values[ATTR_NUM_SHARD_STORAGE - 1] = CharGetDatum(shardStorage);
 
