@@ -58,12 +58,13 @@ static List *ShardIntervalListCache = NIL;
 
 static char *MetadataSchemaName = METADATA_SCHEMA_NAME;
 static char *PartitionTableName = PARTITION_TABLE_NAME;
+
 static char *ShardTableName = SHARD_TABLE_NAME;
-static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
-
 static char *ShardRelationIndexName = SHARD_RELATION_INDEX_NAME;
-
 static AttrNumber AttrNumShardId = ATTR_NUM_SHARD_ID;
+
+static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
+static char *ShardPlacementShardIndexName = SHARD_PLACEMENT_SHARD_INDEX_NAME;
 
 /* local function forward declarations */
 static void LoadShardIntervalRow(int64 shardId, Oid *relationId,
@@ -280,8 +281,7 @@ LoadShardPlacementList(int64 shardId)
 	HeapTuple heapTuple = NULL;
 
 	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementTableName, -1);
-	indexRangeVar = makeRangeVar(MetadataSchemaName,
-								 SHARD_PLACEMENT_SHARD_INDEX_NAME, -1);
+	indexRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementShardIndexName, -1);
 
 	heapRelation = relation_openrv(heapRangeVar, AccessShareLock);
 	indexRelation = relation_openrv(indexRangeVar, AccessShareLock);
