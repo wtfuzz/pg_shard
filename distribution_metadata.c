@@ -71,6 +71,7 @@ static AttrNumber AttrNumShardMaxValue = ATTR_NUM_SHARD_MAX_VALUE;
 
 static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
 static char *ShardPlacementShardIndexName = SHARD_PLACEMENT_SHARD_INDEX_NAME;
+static int ShardPlacementTableAttributeCount = SHARD_PLACEMENT_TABLE_ATTRIBUTE_COUNT;
 
 static AttrNumber AttrNumShardPlacementId = ATTR_NUM_SHARD_PLACEMENT_ID;
 static AttrNumber AttrNumShardPlacementShardId = ATTR_NUM_SHARD_PLACEMENT_SHARD_ID;
@@ -737,6 +738,8 @@ InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 /*
  * InsertShardPlacementRow opens the shard placement metadata table and inserts
  * a row with the given values into the table.
+ *
+ * TODO: Need to preserve shardlength; add parameter?
  */
 void
 InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
@@ -746,18 +749,21 @@ InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
 	RangeVar *shardPlacementRangeVar = NULL;
 	TupleDesc tupleDescriptor = NULL;
 	HeapTuple heapTuple = NULL;
-	Datum values[SHARD_PLACEMENT_TABLE_ATTRIBUTE_COUNT];
-	bool isNulls[SHARD_PLACEMENT_TABLE_ATTRIBUTE_COUNT];
+	Datum values[ShardPlacementTableAttributeCount]; /* TODO: tupleDescriptor->nattrs ? */
+	bool isNulls[ShardPlacementTableAttributeCount];
 
 	/* form new shard placement tuple */
 	memset(values, 0, sizeof(values));
 	memset(isNulls, false, sizeof(isNulls));
 
-	values[ATTR_NUM_SHARD_PLACEMENT_ID - 1] = Int64GetDatum(shardPlacementId);
-	values[ATTR_NUM_SHARD_PLACEMENT_SHARD_ID - 1] = Int64GetDatum(shardId);
-	values[ATTR_NUM_SHARD_PLACEMENT_SHARD_STATE - 1] = UInt32GetDatum(shardState);
-	values[ATTR_NUM_SHARD_PLACEMENT_NODE_NAME - 1] = CStringGetTextDatum(nodeName);
-	values[ATTR_NUM_SHARD_PLACEMENT_NODE_PORT - 1] = UInt32GetDatum(nodePort);
+	/* TODO: Do not set shard placement id in CitusDB */
+	values[AttrNumShardPlacementId - 1] = Int64GetDatum(shardPlacementId);
+	values[AttrNumShardPlacementShardId - 1] = Int64GetDatum(shardId);
+	values[AttrNumShardPlacementShardState - 1] = UInt32GetDatum(shardState);
+
+	/* TODO: set shard length when using CitusDB */
+	values[AttrNumShardPlacementNodeName - 1] = CStringGetTextDatum(nodeName);
+	values[AttrNumShardPlacementNodePort - 1] = UInt32GetDatum(nodePort);
 
 	/* open shard placement relation and insert new tuple */
 	shardPlacementRangeVar = makeRangeVar(MetadataSchemaName,
