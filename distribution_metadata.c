@@ -70,6 +70,7 @@ static AttrNumber AttrNumShardMinValue = ATTR_NUM_SHARD_MIN_VALUE;
 static AttrNumber AttrNumShardMaxValue = ATTR_NUM_SHARD_MAX_VALUE;
 
 static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
+static char *ShardPlacementPkeyIndexName = SHARD_PLACEMENT_PKEY_INDEX_NAME;
 static char *ShardPlacementShardIndexName = SHARD_PLACEMENT_SHARD_INDEX_NAME;
 static int ShardPlacementTableAttributeCount = SHARD_PLACEMENT_TABLE_ATTRIBUTE_COUNT;
 
@@ -798,13 +799,15 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
+	/* TODO: Error out if shardPlacementId > highest Oid (CitusDB) */
+
 	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementTableName, -1);
-	indexRangeVar = makeRangeVar(MetadataSchemaName,
-								 SHARD_PLACEMENT_PKEY_INDEX_NAME, -1);
+	indexRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementPkeyIndexName, -1);
 
 	heapRelation = relation_openrv(heapRangeVar, RowExclusiveLock);
 	indexRelation = relation_openrv(indexRangeVar, AccessShareLock);
 
+	/* TODO: Use F_OIDEQ/ObjectIdGetDatum when using CitusDB */
 	ScanKeyInit(&scanKey[0], 1, BTEqualStrategyNumber, F_INT8EQ,
 				Int64GetDatum(shardPlacementId));
 
