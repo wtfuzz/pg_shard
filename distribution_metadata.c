@@ -66,6 +66,13 @@ static AttrNumber AttrNumShardId = ATTR_NUM_SHARD_ID;
 static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
 static char *ShardPlacementShardIndexName = SHARD_PLACEMENT_SHARD_INDEX_NAME;
 
+
+static AttrNumber AttrNumShardPlacementId = ATTR_NUM_SHARD_PLACEMENT_ID;
+static AttrNumber AttrNumShardPlacementShardId = ATTR_NUM_SHARD_PLACEMENT_SHARD_ID;
+static AttrNumber AttrNumShardPlacementShardState = ATTR_NUM_SHARD_PLACEMENT_SHARD_STATE;
+static AttrNumber AttrNumShardPlacementNodeName = ATTR_NUM_SHARD_PLACEMENT_NODE_NAME;
+static AttrNumber AttrNumShardPlacementNodePort = ATTR_NUM_SHARD_PLACEMENT_NODE_PORT;
+
 /* local function forward declarations */
 static void LoadShardIntervalRow(int64 shardId, Oid *relationId,
 								 char **minValue, char **maxValue);
@@ -602,19 +609,24 @@ TupleToShardPlacement(HeapTuple heapTuple, TupleDesc tupleDescriptor)
 	ShardPlacement *shardPlacement = NULL;
 	bool isNull = false;
 
-	Datum idDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_PLACEMENT_ID,
+	Datum idDatum = heap_getattr(heapTuple, AttrNumShardPlacementId,
 								 tupleDescriptor, &isNull);
-	Datum shardIdDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_PLACEMENT_SHARD_ID,
+	Datum shardIdDatum = heap_getattr(heapTuple, AttrNumShardPlacementShardId,
 									  tupleDescriptor, &isNull);
-	Datum shardStateDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_PLACEMENT_SHARD_STATE,
+	Datum shardStateDatum = heap_getattr(heapTuple, AttrNumShardPlacementShardState,
 										 tupleDescriptor, &isNull);
-	Datum nodeNameDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_PLACEMENT_NODE_NAME,
+	Datum nodeNameDatum = heap_getattr(heapTuple, AttrNumShardPlacementNodeName,
 									   tupleDescriptor, &isNull);
-	Datum nodePortDatum = heap_getattr(heapTuple, ATTR_NUM_SHARD_PLACEMENT_NODE_PORT,
+	Datum nodePortDatum = heap_getattr(heapTuple, AttrNumShardPlacementNodePort,
 									   tupleDescriptor, &isNull);
 
+	/* FIXME: Do we need to preserve shardlength? Probably, huh? */
+
 	shardPlacement = palloc0(sizeof(ShardPlacement));
+
+	/* TODO: Add code to cast placement ID to Oid when using CitusDB */
 	shardPlacement->id = DatumGetInt64(idDatum);
+
 	shardPlacement->shardId = DatumGetInt64(shardIdDatum);
 	shardPlacement->shardState = DatumGetInt32(shardStateDatum);
 	shardPlacement->nodeName = TextDatumGetCString(nodeNameDatum);
