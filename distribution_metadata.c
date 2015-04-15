@@ -14,11 +14,13 @@
 #include "fmgr.h"
 #include "miscadmin.h"
 #include "pg_config.h"
+#include "postgres_ext.h"
 
 #include "distribution_metadata.h"
 
 #include <stddef.h>
 #include <string.h>
+#include <limits.h>
 
 #include "access/attnum.h"
 #include "access/genam.h"
@@ -874,7 +876,12 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 	ScanKeyData scanKey[scanKeyCount];
 	HeapTuple heapTuple = NULL;
 
-	/* TODO: Error out if shardPlacementId > highest Oid (CitusDB) */
+	if (UseCitusMetadata && (shardPlacementId > ((uint64) OID_MAX)))
+	{
+		ereport(ERROR, (errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+						errmsg("provided shard placement ID (" INT64_FORMAT ") exceeds "
+						       "CitusDB's limit of %u", shardPlacementId, OID_MAX)));
+	}
 
 	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementTableName, -1);
 	indexRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementPkeyIndexName, -1);
@@ -882,9 +889,16 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 	heapRelation = relation_openrv(heapRangeVar, RowExclusiveLock);
 	indexRelation = relation_openrv(indexRangeVar, AccessShareLock);
 
-	/* TODO: Use F_OIDEQ/ObjectIdGetDatum when using CitusDB */
-	ScanKeyInit(&scanKey[0], 1, BTEqualStrategyNumber, F_INT8EQ,
-				Int64GetDatum(shardPlacementId));
+	if (UseCitusMetadata)
+	{
+		ScanKeyInit(&scanKey[0], 1, BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum((Oid) shardPlacementId));
+	}
+	else
+	{
+		ScanKeyInit(&scanKey[0], 1, BTEqualStrategyNumber, F_INT8EQ,
+					Int64GetDatum(shardPlacementId));
+	}
 
 	indexScanDesc = index_beginscan(heapRelation, indexRelation, SnapshotSelf,
 									scanKeyCount, 0);
