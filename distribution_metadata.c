@@ -673,8 +673,14 @@ TupleToShardPlacement(HeapTuple heapTuple, TupleDesc tupleDescriptor)
 
 	shardPlacement = palloc0(sizeof(ShardPlacement));
 
-	/* TODO: Add code to cast placement ID to Oid when using CitusDB */
-	shardPlacement->id = DatumGetInt64(idDatum);
+	if (UseCitusMetadata)
+	{
+		shardPlacement->id = (int64) DatumGetObjectId(idDatum);
+	}
+	else
+	{
+		shardPlacement->id = DatumGetInt64(idDatum);
+	}
 
 	shardPlacement->shardId = DatumGetInt64(shardIdDatum);
 	shardPlacement->shardState = DatumGetInt32(shardStateDatum);
