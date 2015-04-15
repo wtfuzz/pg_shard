@@ -259,7 +259,7 @@ delete_shard_placement_row(PG_FUNCTION_ARGS)
 Datum
 next_shard_id(PG_FUNCTION_ARGS __attribute__((unused)))
 {
-	int64 shardId = (int64) NextSequenceId(SHARD_ID_SEQUENCE_NAME);
+	int64 shardId = (int64) NextShardId();
 
 	PG_RETURN_INT64(shardId);
 }

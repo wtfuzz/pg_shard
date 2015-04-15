@@ -21,41 +21,9 @@
 #include "storage/lock.h"
 
 
-/* schema for configuration related to distributed tables */
-#define METADATA_SCHEMA_NAME "pgs_distribution_metadata"
-
-/* table and index names for shard interval information */
-#define SHARD_TABLE_NAME "shard"
-#define SHARD_PKEY_INDEX_NAME "shard_pkey"
-#define SHARD_RELATION_INDEX_NAME "shard_relation_index"
-
 /* denotes storage type of the underlying shard */
 #define SHARD_STORAGE_TABLE 't'
 #define SHARD_STORAGE_FOREIGN 'f'
-
-/* human-readable names for addressing columns of shard table */
-#define SHARD_TABLE_ATTRIBUTE_COUNT 5
-#define ATTR_NUM_SHARD_ID 1
-#define ATTR_NUM_SHARD_RELATION_ID 2
-#define ATTR_NUM_SHARD_STORAGE 3
-#define ATTR_NUM_SHARD_MIN_VALUE 4
-#define ATTR_NUM_SHARD_MAX_VALUE 5
-
-/* table and index names for shard placement information */
-#define SHARD_PLACEMENT_TABLE_NAME "shard_placement"
-#define SHARD_PLACEMENT_PKEY_INDEX_NAME "shard_placement_pkey"
-#define SHARD_PLACEMENT_SHARD_INDEX_NAME "shard_placement_shard_index"
-
-/* human-readable names for addressing columns of shard placement table */
-#define SHARD_PLACEMENT_TABLE_ATTRIBUTE_COUNT 5
-#define ATTR_NUM_SHARD_PLACEMENT_ID 1
-#define ATTR_NUM_SHARD_PLACEMENT_SHARD_ID 2
-#define ATTR_NUM_SHARD_PLACEMENT_SHARD_STATE 3
-#define ATTR_NUM_SHARD_PLACEMENT_NODE_NAME 4
-#define ATTR_NUM_SHARD_PLACEMENT_NODE_PORT 5
-
-/* table containing information about how to partition distributed tables */
-#define PARTITION_TABLE_NAME "partition"
 
 /* denotes partition type of the distributed table */
 #define HASH_PARTITION_TYPE 'h'
@@ -66,10 +34,6 @@
 #define ATTR_NUM_PARTITION_RELATION_ID 1
 #define ATTR_NUM_PARTITION_TYPE 2
 #define ATTR_NUM_PARTITION_KEY 3
-
-/* sequence names to generate new shard id and shard placement id */
-#define SHARD_ID_SEQUENCE_NAME "shard_id_sequence"
-#define SHARD_PLACEMENT_ID_SEQUENCE_NAME "shard_placement_id_sequence"
 
 
 /* ShardState represents the last known state of a shard on a given node */
@@ -131,6 +95,7 @@ typedef struct ShardIntervalListCacheEntry
 
 
 /* function declarations to access and manipulate the metadata */
+extern void InitializeMetadataSchema(void);
 extern List * LookupShardIntervalList(Oid distributedTableId);
 extern List * LoadShardIntervalList(Oid distributedTableId);
 extern ShardInterval * LoadShardInterval(int64 shardId);
@@ -149,7 +114,8 @@ extern void InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
 									ShardState shardState, char *nodeName,
 									uint32 nodePort);
 extern void DeleteShardPlacementRow(uint64 shardPlacementId);
-extern uint64 NextSequenceId(char *sequenceName);
+extern uint64 NextShardId(void);
+extern uint64 NextShardPlacementId(void);
 extern void LockShard(int64 shardId, LOCKMODE lockMode);
 
 

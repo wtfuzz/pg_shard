@@ -46,10 +46,6 @@
 #include "utils/palloc.h"
 
 
-//static char *ShardIdSequenceName = SHARD_ID_SEQUENCE_NAME;
-static char *ShardIdSequenceName = "pg_dist_shardid_seq";
-
-
 /* local function forward declarations */
 static void CheckHashPartitionedTable(Oid distributedTableId);
 static List * ParseWorkerNodeFile(char *workerNodeFilename);
@@ -240,7 +236,7 @@ master_create_worker_shards(PG_FUNCTION_ARGS)
 
 	for (shardIndex = 0; shardIndex < shardCount; shardIndex++)
 	{
-		uint64 shardId = NextSequenceId(ShardIdSequenceName);
+		uint64 shardId = NextShardId();
 		int32 placementCount = 0;
 		uint32 placementIndex = 0;
 		uint32 roundRobinNodeIndex = shardIndex % workerNodeCount;
@@ -277,8 +273,7 @@ master_create_worker_shards(PG_FUNCTION_ARGS)
 				ShardState shardState = STATE_FINALIZED;
 
 
-//				shardPlacementId = NextSequenceId(SHARD_PLACEMENT_ID_SEQUENCE_NAME);
-				shardPlacementId = 0;
+				shardPlacementId = NextShardPlacementId();
 				InsertShardPlacementRow(shardPlacementId, shardId, shardState,
 										nodeName, nodePort);
 				placementCount++;

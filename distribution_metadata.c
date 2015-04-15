@@ -32,8 +32,10 @@
 #include "access/sysattr.h"
 #include "access/tupdesc.h"
 #include "access/xact.h"
+#include "catalog/catalog.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
+#include "catalog/pg_namespace.h"
 #include "catalog/pg_type.h"
 #include "commands/sequence.h"
 #include "nodes/makefuncs.h"
@@ -45,6 +47,7 @@
 #include "utils/elog.h"
 #include "utils/errcodes.h"
 #include "utils/fmgroids.h"
+#include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/palloc.h"
@@ -59,68 +62,130 @@
  */
 static List *ShardIntervalListCache = NIL;
 
-//static bool UseCitusMetadata = false;
-//static char *MetadataSchemaName = METADATA_SCHEMA_NAME;
-//static char *PartitionTableName = PARTITION_TABLE_NAME;
-//
-//static char *ShardTableName = SHARD_TABLE_NAME;
-//static char *ShardPkeyIndexName = SHARD_PKEY_INDEX_NAME;
-//static char *ShardRelationIndexName = SHARD_RELATION_INDEX_NAME;
-//static int ShardTableAttributeCount = SHARD_TABLE_ATTRIBUTE_COUNT;
-//
-//static AttrNumber AttrNumShardId = ATTR_NUM_SHARD_ID;
-//static AttrNumber AttrNumShardRelationId = ATTR_NUM_SHARD_RELATION_ID;
-//static AttrNumber AttrNumShardStorage = ATTR_NUM_SHARD_STORAGE;
-//static AttrNumber AttrNumShardAlias = InvalidAttrNumber;
-//static AttrNumber AttrNumShardMinValue = ATTR_NUM_SHARD_MIN_VALUE;
-//static AttrNumber AttrNumShardMaxValue = ATTR_NUM_SHARD_MAX_VALUE;
-//
-//static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
-//static char *ShardPlacementPkeyIndexName = SHARD_PLACEMENT_PKEY_INDEX_NAME;
-//static char *ShardPlacementShardIndexName = SHARD_PLACEMENT_SHARD_INDEX_NAME;
-//static int ShardPlacementTableAttributeCount = SHARD_PLACEMENT_TABLE_ATTRIBUTE_COUNT;
-//
-//static AttrNumber AttrNumShardPlacementId = ATTR_NUM_SHARD_PLACEMENT_ID;
-//static AttrNumber AttrNumShardPlacementShardId = ATTR_NUM_SHARD_PLACEMENT_SHARD_ID;
-//static AttrNumber AttrNumShardPlacementShardState = ATTR_NUM_SHARD_PLACEMENT_SHARD_STATE;
-//static AttrNumber AttrNumShardPlacementShardLength = InvalidAttrNumber;
-//static AttrNumber AttrNumShardPlacementNodeName = ATTR_NUM_SHARD_PLACEMENT_NODE_NAME;
-//static AttrNumber AttrNumShardPlacementNodePort = ATTR_NUM_SHARD_PLACEMENT_NODE_PORT;
+static bool UseCitusMetadata = false;
 
-static bool UseCitusMetadata = true;
-static char *MetadataSchemaName = "pg_catalog";
-static char *PartitionTableName = "pg_dist_partition";
+/* schema for configuration related to distributed tables */
+static char *MetadataSchemaName = NULL;
 
-static char *ShardTableName = "pg_dist_shard";
-static char *ShardPkeyIndexName = "pg_dist_shard_shardid_index";
-static char *ShardRelationIndexName = "pg_dist_shard_logical_relid_index";
-static int ShardTableAttributeCount = 6;
+/* table and index names for shard interval information */
+static char *ShardTableName = NULL;
+static char *ShardPkeyIndexName = NULL;
+static char *ShardRelationIndexName = NULL;
 
-static AttrNumber AttrNumShardId = 2;
-static AttrNumber AttrNumShardRelationId = 1;
-static AttrNumber AttrNumShardStorage = 3;
-static AttrNumber AttrNumShardAlias = 4;
-static AttrNumber AttrNumShardMinValue = 5;
-static AttrNumber AttrNumShardMaxValue = 6;
+/* human-readable names for addressing columns of shard table */
+static int ShardTableAttributeCount = -1;
+static AttrNumber AttrNumShardId = InvalidAttrNumber;
+static AttrNumber AttrNumShardRelationId = InvalidAttrNumber;
+static AttrNumber AttrNumShardStorage = InvalidAttrNumber;
+static AttrNumber AttrNumShardAlias = InvalidAttrNumber;
+static AttrNumber AttrNumShardMinValue = InvalidAttrNumber;
+static AttrNumber AttrNumShardMaxValue = InvalidAttrNumber;
 
-static char *ShardPlacementTableName = "pg_dist_shard_placement";
-static char *ShardPlacementPkeyIndexName = "pg_dist_shard_placement_oid_index";
-static char *ShardPlacementShardIndexName = "pg_dist_shard_placement_shardid_index";
-static int ShardPlacementTableAttributeCount = 5;
+/* table and index names for shard placement information */
+static char *ShardPlacementTableName = NULL;
+static char *ShardPlacementPkeyIndexName = NULL;
+static char *ShardPlacementShardIndexName = NULL;
 
-static AttrNumber AttrNumShardPlacementId = ObjectIdAttributeNumber;
-static AttrNumber AttrNumShardPlacementShardId = 1;
-static AttrNumber AttrNumShardPlacementShardState = 2;
-static AttrNumber AttrNumShardPlacementShardLength = 3;
-static AttrNumber AttrNumShardPlacementNodeName = 4;
-static AttrNumber AttrNumShardPlacementNodePort = 5;
+/* human-readable names for addressing columns of shard placement table */
+static int ShardPlacementTableAttributeCount = -1;
+static AttrNumber AttrNumShardPlacementId = InvalidAttrNumber;
+static AttrNumber AttrNumShardPlacementShardId = InvalidAttrNumber;
+static AttrNumber AttrNumShardPlacementShardState = InvalidAttrNumber;
+static AttrNumber AttrNumShardPlacementShardLength = InvalidAttrNumber;
+static AttrNumber AttrNumShardPlacementNodeName = InvalidAttrNumber;
+static AttrNumber AttrNumShardPlacementNodePort = InvalidAttrNumber;
+
+/* table containing information about how to partition distributed tables */
+static char *PartitionTableName = NULL;
+
+/* sequence names to generate new shard id and shard placement id */
+static char *ShardIdSequenceName = NULL;
+
 
 /* local function forward declarations */
 static void LoadShardIntervalRow(int64 shardId, Oid *relationId,
 								 char **minValue, char **maxValue);
 static ShardPlacement * TupleToShardPlacement(HeapTuple heapTuple,
 											  TupleDesc tupleDescriptor);
+static uint64 NextSequenceId(char *sequenceName);
 
+
+void
+InitializeMetadataSchema()
+{
+	const char *citusReplicationFactor = NULL;
+	bool missingOK = true;
+	bool restrictSuperuser = false;
+
+	citusReplicationFactor = GetConfigOption("shard_replication_factor", missingOK,
+	                                         restrictSuperuser);
+	if (citusReplicationFactor != NULL)
+	{
+		UseCitusMetadata = true;
+
+		MetadataSchemaName = "pg_catalog";
+		PartitionTableName = "pg_dist_partition";
+
+		ShardTableName = "pg_dist_shard";
+		ShardPkeyIndexName = "pg_dist_shard_shardid_index";
+		ShardRelationIndexName = "pg_dist_shard_logical_relid_index";
+		ShardTableAttributeCount = 6;
+
+		AttrNumShardId = 2;
+		AttrNumShardRelationId = 1;
+		AttrNumShardStorage = 3;
+		AttrNumShardAlias = 4;
+		AttrNumShardMinValue = 5;
+		AttrNumShardMaxValue = 6;
+
+		ShardPlacementTableName = "pg_dist_shard_placement";
+		ShardPlacementPkeyIndexName = "pg_dist_shard_placement_oid_index";
+		ShardPlacementShardIndexName = "pg_dist_shard_placement_shardid_index";
+		ShardPlacementTableAttributeCount = 5;
+
+		AttrNumShardPlacementId = ObjectIdAttributeNumber;
+		AttrNumShardPlacementShardId = 1;
+		AttrNumShardPlacementShardState = 2;
+		AttrNumShardPlacementShardLength = 3;
+		AttrNumShardPlacementNodeName = 4;
+		AttrNumShardPlacementNodePort = 5;
+
+		ShardIdSequenceName = "pg_dist_shardid_seq";
+	}
+	else
+	{
+		UseCitusMetadata = false;
+
+		MetadataSchemaName = "pgs_distribution_metadata";
+		PartitionTableName = "partition";
+
+		ShardTableName = "shard";
+		ShardPkeyIndexName = "shard_pkey";
+		ShardRelationIndexName = "shard_relation_index";
+		ShardTableAttributeCount = 5;
+
+		AttrNumShardId = 1;
+		AttrNumShardRelationId = 2;
+		AttrNumShardStorage = 3;
+		AttrNumShardAlias = InvalidAttrNumber;
+		AttrNumShardMinValue = 4;
+		AttrNumShardMaxValue = 5;
+
+		ShardPlacementTableName = "shard_placement";
+		ShardPlacementPkeyIndexName = "shard_placement_pkey";
+		ShardPlacementShardIndexName = "shard_placement_shard_index";
+		ShardPlacementTableAttributeCount = 5;
+
+		AttrNumShardPlacementId = 1;
+		AttrNumShardPlacementShardId = 2;
+		AttrNumShardPlacementShardState = 3;
+		AttrNumShardPlacementShardLength = InvalidAttrNumber;
+		AttrNumShardPlacementNodeName = 4;
+		AttrNumShardPlacementNodePort = 5;
+
+		ShardIdSequenceName = "shard_id_sequence";
+	}
+}
 
 /*
  * LookupShardIntervalList is wrapper around LoadShardIntervalList that uses a
@@ -922,11 +987,30 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 }
 
 
+uint64
+NextShardId()
+{
+	return NextSequenceId(ShardIdSequenceName);
+}
+
+uint64
+NextShardPlacementId()
+{
+	if (UseCitusMetadata)
+	{
+		return 0;
+	}
+	else
+	{
+		return NextSequenceId("shard_placement_id_sequence");
+	}
+}
+
 /*
  * NextSequenceId allocates and returns a new unique id generated from the given
  * sequence name.
  */
-uint64
+static uint64
 NextSequenceId(char *sequenceName)
 {
 	RangeVar *sequenceRangeVar = makeRangeVar(MetadataSchemaName,
