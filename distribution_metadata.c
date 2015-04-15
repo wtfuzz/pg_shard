@@ -27,6 +27,7 @@
 #include "access/htup.h"
 #include "access/sdir.h"
 #include "access/skey.h"
+#include "access/sysattr.h"
 #include "access/tupdesc.h"
 #include "access/xact.h"
 #include "catalog/indexing.h"
@@ -56,30 +57,57 @@
  */
 static List *ShardIntervalListCache = NIL;
 
-static char *MetadataSchemaName = METADATA_SCHEMA_NAME;
-static char *PartitionTableName = PARTITION_TABLE_NAME;
+//static bool UseCitusMetadata = false;
+//static char *MetadataSchemaName = METADATA_SCHEMA_NAME;
+//static char *PartitionTableName = PARTITION_TABLE_NAME;
+//
+//static char *ShardTableName = SHARD_TABLE_NAME;
+//static char *ShardPkeyIndexName = SHARD_PKEY_INDEX_NAME;
+//static char *ShardRelationIndexName = SHARD_RELATION_INDEX_NAME;
+//static int ShardTableAttributeCount = SHARD_TABLE_ATTRIBUTE_COUNT;
+//
+//static AttrNumber AttrNumShardId = ATTR_NUM_SHARD_ID;
+//static AttrNumber AttrNumShardRelationId = ATTR_NUM_SHARD_RELATION_ID;
+//static AttrNumber AttrNumShardStorage = ATTR_NUM_SHARD_STORAGE;
+//static AttrNumber AttrNumShardMinValue = ATTR_NUM_SHARD_MIN_VALUE;
+//static AttrNumber AttrNumShardMaxValue = ATTR_NUM_SHARD_MAX_VALUE;
+//
+//static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
+//static char *ShardPlacementPkeyIndexName = SHARD_PLACEMENT_PKEY_INDEX_NAME;
+//static char *ShardPlacementShardIndexName = SHARD_PLACEMENT_SHARD_INDEX_NAME;
+//static int ShardPlacementTableAttributeCount = SHARD_PLACEMENT_TABLE_ATTRIBUTE_COUNT;
+//
+//static AttrNumber AttrNumShardPlacementId = ATTR_NUM_SHARD_PLACEMENT_ID;
+//static AttrNumber AttrNumShardPlacementShardId = ATTR_NUM_SHARD_PLACEMENT_SHARD_ID;
+//static AttrNumber AttrNumShardPlacementShardState = ATTR_NUM_SHARD_PLACEMENT_SHARD_STATE;
+//static AttrNumber AttrNumShardPlacementNodeName = ATTR_NUM_SHARD_PLACEMENT_NODE_NAME;
+//static AttrNumber AttrNumShardPlacementNodePort = ATTR_NUM_SHARD_PLACEMENT_NODE_PORT;
 
-static char *ShardTableName = SHARD_TABLE_NAME;
-static char *ShardPkeyIndexName = SHARD_PKEY_INDEX_NAME;
-static char *ShardRelationIndexName = SHARD_RELATION_INDEX_NAME;
-static int ShardTableAttributeCount = SHARD_TABLE_ATTRIBUTE_COUNT;
+static bool UseCitusMetadata = true;
+static char *MetadataSchemaName = "pg_catalog";
+static char *PartitionTableName = "pg_dist_partition";
 
-static AttrNumber AttrNumShardId = ATTR_NUM_SHARD_ID;
-static AttrNumber AttrNumShardRelationId = ATTR_NUM_SHARD_RELATION_ID;
-static AttrNumber AttrNumShardStorage = ATTR_NUM_SHARD_STORAGE;
-static AttrNumber AttrNumShardMinValue = ATTR_NUM_SHARD_MIN_VALUE;
-static AttrNumber AttrNumShardMaxValue = ATTR_NUM_SHARD_MAX_VALUE;
+static char *ShardTableName = "pg_dist_shard";
+static char *ShardPkeyIndexName = "pg_dist_shard_shardid_index";
+static char *ShardRelationIndexName = "pg_dist_shard_logical_relid_index";
+static int ShardTableAttributeCount = 6;
 
-static char *ShardPlacementTableName = SHARD_PLACEMENT_TABLE_NAME;
-static char *ShardPlacementPkeyIndexName = SHARD_PLACEMENT_PKEY_INDEX_NAME;
-static char *ShardPlacementShardIndexName = SHARD_PLACEMENT_SHARD_INDEX_NAME;
-static int ShardPlacementTableAttributeCount = SHARD_PLACEMENT_TABLE_ATTRIBUTE_COUNT;
+static AttrNumber AttrNumShardId = 2;
+static AttrNumber AttrNumShardRelationId = 1;
+static AttrNumber AttrNumShardStorage = 3;
+static AttrNumber AttrNumShardMinValue = 5;
+static AttrNumber AttrNumShardMaxValue = 6;
 
-static AttrNumber AttrNumShardPlacementId = ATTR_NUM_SHARD_PLACEMENT_ID;
-static AttrNumber AttrNumShardPlacementShardId = ATTR_NUM_SHARD_PLACEMENT_SHARD_ID;
-static AttrNumber AttrNumShardPlacementShardState = ATTR_NUM_SHARD_PLACEMENT_SHARD_STATE;
-static AttrNumber AttrNumShardPlacementNodeName = ATTR_NUM_SHARD_PLACEMENT_NODE_NAME;
-static AttrNumber AttrNumShardPlacementNodePort = ATTR_NUM_SHARD_PLACEMENT_NODE_PORT;
+static char *ShardPlacementTableName = "pg_dist_shard_placement";
+static char *ShardPlacementPkeyIndexName = "pg_dist_shard_placement_oid_index";
+static char *ShardPlacementShardIndexName = "pg_dist_shard_placement_shardid_index";
+static int ShardPlacementTableAttributeCount = 5;
+
+static AttrNumber AttrNumShardPlacementId = ObjectIdAttributeNumber;
+static AttrNumber AttrNumShardPlacementShardId = 1;
+static AttrNumber AttrNumShardPlacementShardState = 2;
+static AttrNumber AttrNumShardPlacementNodeName = 4;
+static AttrNumber AttrNumShardPlacementNodePort = 5;
 
 /* local function forward declarations */
 static void LoadShardIntervalRow(int64 shardId, Oid *relationId,
