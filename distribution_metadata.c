@@ -711,8 +711,21 @@ InsertPartitionRow(Oid distributedTableId, char partitionType, text *partitionKe
 
 	values[ATTR_NUM_PARTITION_RELATION_ID - 1] = ObjectIdGetDatum(distributedTableId);
 	values[ATTR_NUM_PARTITION_TYPE - 1] = CharGetDatum(partitionType);
-	/* TODO: When using Citus, use Var representation instead */
-	values[ATTR_NUM_PARTITION_KEY - 1] = PointerGetDatum(partitionKeyText);
+
+	/* CitusDB stores representation of underlying Var node, not just column name */
+	if (UseCitusMetadata)
+	{
+		char *partitionColumnName = text_to_cstring(partitionKeyText);
+		Var *partitionColumn = ColumnNameToColumn(distributedTableId,
+		                                          partitionColumnName);
+		char *partitionKeyString = nodeToString(partitionColumn);
+
+		values[ATTR_NUM_PARTITION_KEY - 1] = CStringGetTextDatum(partitionKeyString);
+	}
+	else
+	{
+		values[ATTR_NUM_PARTITION_KEY - 1] = PointerGetDatum(partitionKeyText);
+	}
 
 	/* open the partition relation and insert new tuple */
 	partitionRangeVar = makeRangeVar(MetadataSchemaName, PartitionTableName, -1);
