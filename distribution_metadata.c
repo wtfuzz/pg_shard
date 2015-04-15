@@ -81,6 +81,7 @@ static List *ShardIntervalListCache = NIL;
 //static AttrNumber AttrNumShardPlacementId = ATTR_NUM_SHARD_PLACEMENT_ID;
 //static AttrNumber AttrNumShardPlacementShardId = ATTR_NUM_SHARD_PLACEMENT_SHARD_ID;
 //static AttrNumber AttrNumShardPlacementShardState = ATTR_NUM_SHARD_PLACEMENT_SHARD_STATE;
+//static AttrNumber AttrNumShardPlacementShardLength = InvalidAttrNumber;
 //static AttrNumber AttrNumShardPlacementNodeName = ATTR_NUM_SHARD_PLACEMENT_NODE_NAME;
 //static AttrNumber AttrNumShardPlacementNodePort = ATTR_NUM_SHARD_PLACEMENT_NODE_PORT;
 
@@ -108,6 +109,7 @@ static int ShardPlacementTableAttributeCount = 5;
 static AttrNumber AttrNumShardPlacementId = ObjectIdAttributeNumber;
 static AttrNumber AttrNumShardPlacementShardId = 1;
 static AttrNumber AttrNumShardPlacementShardState = 2;
+static AttrNumber AttrNumShardPlacementShardLength = 3;
 static AttrNumber AttrNumShardPlacementNodeName = 4;
 static AttrNumber AttrNumShardPlacementNodePort = 5;
 
@@ -824,12 +826,18 @@ InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
 	memset(values, 0, sizeof(values));
 	memset(isNulls, false, sizeof(isNulls));
 
-	/* TODO: Do not set shard placement id in CitusDB */
-	values[AttrNumShardPlacementId - 1] = Int64GetDatum(shardPlacementId);
+	/* Citus doesn't have an id column on shard placements */
+	if (!UseCitusMetadata)
+	{
+		values[AttrNumShardPlacementId - 1] = Int64GetDatum(shardPlacementId);
+	}
 	values[AttrNumShardPlacementShardId - 1] = Int64GetDatum(shardId);
 	values[AttrNumShardPlacementShardState - 1] = UInt32GetDatum(shardState);
 
-	/* TODO: set shard length when using CitusDB */
+	if (UseCitusMetadata)
+	{
+		values[AttrNumShardPlacementShardLength] = Int64GetDatum(0);
+	}
 	values[AttrNumShardPlacementNodeName - 1] = CStringGetTextDatum(nodeName);
 	values[AttrNumShardPlacementNodePort - 1] = UInt32GetDatum(nodePort);
 
