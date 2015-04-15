@@ -394,10 +394,21 @@ PartitionColumn(Oid distributedTableId)
 
 		Datum keyDatum = heap_getattr(heapTuple, ATTR_NUM_PARTITION_KEY,
 									  tupleDescriptor, &isNull);
-		char *partitionColumnName = TextDatumGetCString(keyDatum);
 
-		/* TODO: Just directly read the value to a Var for CitusDB */
-		partitionColumn = ColumnNameToColumn(distributedTableId, partitionColumnName);
+		if (UseCitusMetadata)
+		{
+			char *keyString = TextDatumGetCString(keyDatum);
+			Node *partitionNode = stringToNode(keyString);
+
+			Assert(IsA(partitionNode, Var));
+			partitionColumn = (Var *) partitionNode;
+		}
+		else
+		{
+			 char *partitionColumnName = TextDatumGetCString(keyDatum);
+			 partitionColumn = ColumnNameToColumn(distributedTableId,
+			                                      partitionColumnName);
+		}
 	}
 	else
 	{
