@@ -69,6 +69,7 @@ static List *ShardIntervalListCache = NIL;
 //static AttrNumber AttrNumShardId = ATTR_NUM_SHARD_ID;
 //static AttrNumber AttrNumShardRelationId = ATTR_NUM_SHARD_RELATION_ID;
 //static AttrNumber AttrNumShardStorage = ATTR_NUM_SHARD_STORAGE;
+//static AttrNumber AttrNumShardAlias = InvalidAttrNumber;
 //static AttrNumber AttrNumShardMinValue = ATTR_NUM_SHARD_MIN_VALUE;
 //static AttrNumber AttrNumShardMaxValue = ATTR_NUM_SHARD_MAX_VALUE;
 //
@@ -95,6 +96,7 @@ static int ShardTableAttributeCount = 6;
 static AttrNumber AttrNumShardId = 2;
 static AttrNumber AttrNumShardRelationId = 1;
 static AttrNumber AttrNumShardStorage = 3;
+static AttrNumber AttrNumShardAlias = 4;
 static AttrNumber AttrNumShardMinValue = 5;
 static AttrNumber AttrNumShardMaxValue = 6;
 
@@ -779,7 +781,11 @@ InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 		isNulls[AttrNumShardMaxValue - 1] = true;
 	}
 
-	/* TODO: set shardalias to NULL for CitusDB */
+	/* fill in NULL for shard alias within CitusDB: we don't support this feature */
+	if (UseCitusMetadata)
+	{
+		isNulls[AttrNumShardAlias - 1] = true;
+	}
 
 	/* open shard relation and insert new tuple */
 	shardRangeVar = makeRangeVar(MetadataSchemaName, ShardTableName, -1);
