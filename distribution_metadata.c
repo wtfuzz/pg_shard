@@ -111,9 +111,9 @@ static char *ShardIdSequenceName = NULL;
 /* local function forward declarations */
 static void LoadShardIntervalRow(int64 shardId, Oid *relationId,
 								 char **minValue, char **maxValue);
+static uint64 NextSequenceId(char *sequenceName);
 static ShardPlacement * TupleToShardPlacement(HeapTuple heapTuple,
 											  TupleDesc tupleDescriptor);
-static uint64 NextSequenceId(char *sequenceName);
 
 
 /*
@@ -630,6 +630,37 @@ DistributedTablesExist(void)
 
 
 /*
+ * NextShardPlacementId allocates and returns a shard identifier suitable for
+ * use when creating a new placement.
+ */
+uint64
+NextShardId()
+{
+	return NextSequenceId(ShardIdSequenceName);
+}
+
+
+/*
+ * NextShardPlacementId allocates and returns a shard placement identifier
+ * suitable for use when creating a new placement. If CitusDB's metadata is
+ * being used, this function simply returns zero, as CitusDB uses placement
+ * row object identifiers to address placements.
+ */
+uint64
+NextShardPlacementId()
+{
+	if (UseCitusMetadata)
+	{
+		return 0;
+	}
+	else
+	{
+		return NextSequenceId("shard_placement_id_sequence");
+	}
+}
+
+
+/*
  * ColumnNameToColumn accepts a relation identifier and column name and returns
  * a Var that represents that column in that relation. This function throws an
  * error if the column doesn't exist or is a system column.
@@ -731,6 +762,27 @@ LoadShardIntervalRow(int64 shardId, Oid *relationId, char **minValue,
 	index_endscan(indexScanDesc);
 	index_close(indexRelation, AccessShareLock);
 	relation_close(heapRelation, AccessShareLock);
+}
+
+
+/*
+ * NextSequenceId allocates and returns a new unique id generated from the given
+ * sequence name.
+ */
+static uint64
+NextSequenceId(char *sequenceName)
+{
+	RangeVar *sequenceRangeVar = makeRangeVar(MetadataSchemaName,
+											  sequenceName, -1);
+	bool failOk = false;
+	Oid sequenceRelationId = RangeVarGetRelid(sequenceRangeVar, NoLock, failOk);
+	Datum sequenceRelationIdDatum = ObjectIdGetDatum(sequenceRelationId);
+
+	/* generate new and unique id from sequence */
+	Datum sequenceIdDatum = DirectFunctionCall1(nextval_oid, sequenceRelationIdDatum);
+	uint64 nextSequenceId = (uint64) DatumGetInt64(sequenceIdDatum);
+
+	return nextSequenceId;
 }
 
 
@@ -1002,58 +1054,6 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 	index_endscan(indexScanDesc);
 	index_close(indexRelation, AccessShareLock);
 	relation_close(heapRelation, RowExclusiveLock);
-}
-
-
-/*
- * NextShardPlacementId allocates and returns a shard identifier suitable for
- * use when creating a new placement.
- */
-uint64
-NextShardId()
-{
-	return NextSequenceId(ShardIdSequenceName);
-}
-
-
-/*
- * NextShardPlacementId allocates and returns a shard placement identifier
- * suitable for use when creating a new placement. If CitusDB's metadata is
- * being used, this function simply returns zero, as CitusDB uses placement
- * row object identifiers to address placements.
- */
-uint64
-NextShardPlacementId()
-{
-	if (UseCitusMetadata)
-	{
-		return 0;
-	}
-	else
-	{
-		return NextSequenceId("shard_placement_id_sequence");
-	}
-}
-
-
-/*
- * NextSequenceId allocates and returns a new unique id generated from the given
- * sequence name.
- */
-static uint64
-NextSequenceId(char *sequenceName)
-{
-	RangeVar *sequenceRangeVar = makeRangeVar(MetadataSchemaName,
-											  sequenceName, -1);
-	bool failOk = false;
-	Oid sequenceRelationId = RangeVarGetRelid(sequenceRangeVar, NoLock, failOk);
-	Datum sequenceRelationIdDatum = ObjectIdGetDatum(sequenceRelationId);
-
-	/* generate new and unique id from sequence */
-	Datum sequenceIdDatum = DirectFunctionCall1(nextval_oid, sequenceRelationIdDatum);
-	uint64 nextSequenceId = (uint64) DatumGetInt64(sequenceIdDatum);
-
-	return nextSequenceId;
 }
 
 
