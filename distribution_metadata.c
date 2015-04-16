@@ -61,6 +61,13 @@
  */
 static List *ShardIntervalListCache = NIL;
 
+/*
+ * The following variables allow this file to read either from pg_shard's own
+ * metadata tables or CitusDB's metadata, which is stored in a catalog table.
+ * An initialization method sets up their values so functions within this file
+ * can make the right decisions about how to read metadata. Callers are fully
+ * shielded from the decision of which backing store to use.
+ */
 static bool UseCitusMetadata = false;
 
 /* schema for configuration related to distributed tables */
@@ -109,6 +116,13 @@ static ShardPlacement * TupleToShardPlacement(HeapTuple heapTuple,
 static uint64 NextSequenceId(char *sequenceName);
 
 
+/*
+ * InitializeMetadataSchema sets the schema-related variables used by the
+ * various metadata functions to read from the appropriate backing store. We
+ * first check whether a CitusDB-specific GUC setting is present. If so, the
+ * CitusDB catalog tables will be used to read and write metadata; otherwise,
+ * pg_shard will use its metadata tables created during extension installation.
+ */
 void
 InitializeMetadataSchema()
 {
@@ -989,6 +1003,10 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 }
 
 
+/*
+ * NextShardPlacementId allocates and returns a shard identifier suitable for
+ * use when creating a new placement.
+ */
 uint64
 NextShardId()
 {
@@ -996,6 +1014,12 @@ NextShardId()
 }
 
 
+/*
+ * NextShardPlacementId allocates and returns a shard placement identifier
+ * suitable for use when creating a new placement. If CitusDB's metadata is
+ * being used, this function simply returns zero, as CitusDB uses placement
+ * row object identifiers to address placements.
+ */
 uint64
 NextShardPlacementId()
 {
