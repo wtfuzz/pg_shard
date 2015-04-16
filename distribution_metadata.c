@@ -137,13 +137,12 @@ InitializeMetadataSchema()
 		UseCitusMetadata = true;
 
 		MetadataSchemaName = "pg_catalog";
-		PartitionTableName = "pg_dist_partition";
 
 		ShardTableName = "pg_dist_shard";
 		ShardPkeyIndexName = "pg_dist_shard_shardid_index";
 		ShardRelationIndexName = "pg_dist_shard_logical_relid_index";
-		ShardTableAttributeCount = 6;
 
+		ShardTableAttributeCount = 6;
 		AttrNumShardId = 2;
 		AttrNumShardRelationId = 1;
 		AttrNumShardStorage = 3;
@@ -154,14 +153,16 @@ InitializeMetadataSchema()
 		ShardPlacementTableName = "pg_dist_shard_placement";
 		ShardPlacementPkeyIndexName = "pg_dist_shard_placement_oid_index";
 		ShardPlacementShardIndexName = "pg_dist_shard_placement_shardid_index";
-		ShardPlacementTableAttributeCount = 5;
 
+		ShardPlacementTableAttributeCount = 5;
 		AttrNumShardPlacementId = ObjectIdAttributeNumber;
 		AttrNumShardPlacementShardId = 1;
 		AttrNumShardPlacementShardState = 2;
 		AttrNumShardPlacementShardLength = 3;
 		AttrNumShardPlacementNodeName = 4;
 		AttrNumShardPlacementNodePort = 5;
+
+		PartitionTableName = "pg_dist_partition";
 
 		ShardIdSequenceName = "pg_dist_shardid_seq";
 	}
@@ -170,13 +171,12 @@ InitializeMetadataSchema()
 		UseCitusMetadata = false;
 
 		MetadataSchemaName = "pgs_distribution_metadata";
-		PartitionTableName = "partition";
 
 		ShardTableName = "shard";
 		ShardPkeyIndexName = "shard_pkey";
 		ShardRelationIndexName = "shard_relation_index";
-		ShardTableAttributeCount = 5;
 
+		ShardTableAttributeCount = 5;
 		AttrNumShardId = 1;
 		AttrNumShardRelationId = 2;
 		AttrNumShardStorage = 3;
@@ -187,14 +187,16 @@ InitializeMetadataSchema()
 		ShardPlacementTableName = "shard_placement";
 		ShardPlacementPkeyIndexName = "shard_placement_pkey";
 		ShardPlacementShardIndexName = "shard_placement_shard_index";
-		ShardPlacementTableAttributeCount = 5;
 
+		ShardPlacementTableAttributeCount = 5;
 		AttrNumShardPlacementId = 1;
 		AttrNumShardPlacementShardId = 2;
 		AttrNumShardPlacementShardState = 3;
 		AttrNumShardPlacementShardLength = InvalidAttrNumber;
 		AttrNumShardPlacementNodeName = 4;
 		AttrNumShardPlacementNodePort = 5;
+
+		PartitionTableName = "partition";
 
 		ShardIdSequenceName = "shard_id_sequence";
 	}
