@@ -20,7 +20,7 @@
 
 #include <stddef.h>
 #include <string.h>
-#include <limits.h>
+#include <limits.h> /* IWYU pragma: keep */
 
 #include "access/attnum.h"
 #include "access/genam.h"
@@ -32,14 +32,13 @@
 #include "access/sysattr.h"
 #include "access/tupdesc.h"
 #include "access/xact.h"
-#include "catalog/catalog.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
-#include "catalog/pg_namespace.h"
 #include "catalog/pg_type.h"
 #include "commands/sequence.h"
 #include "nodes/makefuncs.h"
 #include "nodes/memnodes.h" /* IWYU pragma: keep */
+#include "nodes/nodes.h"
 #include "nodes/pg_list.h"
 #include "nodes/primnodes.h"
 #include "storage/lock.h"
