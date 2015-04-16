@@ -117,7 +117,7 @@ InitializeMetadataSchema()
 	bool restrictSuperuser = false;
 
 	citusReplicationFactor = GetConfigOption("shard_replication_factor", missingOK,
-	                                         restrictSuperuser);
+											 restrictSuperuser);
 	if (citusReplicationFactor != NULL)
 	{
 		UseCitusMetadata = true;
@@ -185,6 +185,7 @@ InitializeMetadataSchema()
 		ShardIdSequenceName = "shard_id_sequence";
 	}
 }
+
 
 /*
  * LookupShardIntervalList is wrapper around LoadShardIntervalList that uses a
@@ -475,9 +476,9 @@ PartitionColumn(Oid distributedTableId)
 		}
 		else
 		{
-			 char *partitionColumnName = TextDatumGetCString(keyDatum);
-			 partitionColumn = ColumnNameToColumn(distributedTableId,
-			                                      partitionColumnName);
+			char *partitionColumnName = TextDatumGetCString(keyDatum);
+			partitionColumn = ColumnNameToColumn(distributedTableId,
+												 partitionColumnName);
 		}
 	}
 	else
@@ -787,7 +788,7 @@ InsertPartitionRow(Oid distributedTableId, char partitionType, text *partitionKe
 	{
 		char *partitionColumnName = text_to_cstring(partitionKeyText);
 		Var *partitionColumn = ColumnNameToColumn(distributedTableId,
-		                                          partitionColumnName);
+												  partitionColumnName);
 		char *partitionKeyString = nodeToString(partitionColumn);
 
 		values[ATTR_NUM_PARTITION_KEY - 1] = CStringGetTextDatum(partitionKeyString);
@@ -943,8 +944,10 @@ DeleteShardPlacementRow(uint64 shardPlacementId)
 	if (UseCitusMetadata && (shardPlacementId > ((uint64) OID_MAX)))
 	{
 		ereport(ERROR, (errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-						errmsg("provided shard placement ID (" INT64_FORMAT ") exceeds "
-						       "CitusDB's limit of %u", shardPlacementId, OID_MAX)));
+						errmsg("shard placement id exceeds the maximum allowed (%u)",
+							   OID_MAX),
+						errdetail("CitusDB uses object identifiers to address shard "
+								  "placements, which do not cover the int64 range.")));
 	}
 
 	heapRangeVar = makeRangeVar(MetadataSchemaName, ShardPlacementTableName, -1);
@@ -992,6 +995,7 @@ NextShardId()
 	return NextSequenceId(ShardIdSequenceName);
 }
 
+
 uint64
 NextShardPlacementId()
 {
@@ -1004,6 +1008,7 @@ NextShardPlacementId()
 		return NextSequenceId("shard_placement_id_sequence");
 	}
 }
+
 
 /*
  * NextSequenceId allocates and returns a new unique id generated from the given
