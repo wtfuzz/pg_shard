@@ -1799,8 +1799,8 @@ ExecuteDistributedModify(DistributedPlan *plan)
 
 		DeleteShardPlacementRow(failedPlacement->id);
 		InsertShardPlacementRow(failedPlacement->id, failedPlacement->shardId,
-								STATE_INACTIVE, failedPlacement->nodeName,
-								failedPlacement->nodePort);
+								STATE_INACTIVE, failedPlacement->shardLength,
+								failedPlacement->nodeName, failedPlacement->nodePort);
 	}
 
 	return affectedTupleCount;

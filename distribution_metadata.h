@@ -78,6 +78,7 @@ typedef struct ShardPlacement
 	int64 id;               /* unique identifier for the shard placement */
 	int64 shardId;          /* identifies shard for this shard placement */
 	ShardState shardState;  /* represents last known state of this placement */
+	int64 shardLength;      /* CitusDB only: bytes stored in this shard */
 	char *nodeName;         /* hostname of machine hosting this shard */
 	int32 nodePort;         /* port number for connecting to host */
 } ShardPlacement;
@@ -111,8 +112,8 @@ extern void InsertPartitionRow(Oid distributedTableId, char partitionType,
 extern void InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 						   text *shardMinValue, text *shardMaxValue);
 extern void InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
-									ShardState shardState, char *nodeName,
-									uint32 nodePort);
+                                    ShardState shardState, int64 shardLength,
+                                    char *nodeName, uint32 nodePort);
 extern void DeleteShardPlacementRow(uint64 shardPlacementId);
 extern uint64 NextShardId(void);
 extern uint64 NextShardPlacementId(void);

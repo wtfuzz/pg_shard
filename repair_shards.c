@@ -139,8 +139,8 @@ master_copy_shard_placement(PG_FUNCTION_ARGS)
 	/* the placement is repaired, so return to finalized state */
 	DeleteShardPlacementRow(targetPlacement->id);
 	InsertShardPlacementRow(targetPlacement->id, targetPlacement->shardId,
-							STATE_FINALIZED, targetPlacement->nodeName,
-							targetPlacement->nodePort);
+							STATE_FINALIZED, targetPlacement->shardLength,
+							targetPlacement->nodeName, targetPlacement->nodePort);
 
 	RESUME_INTERRUPTS();
 

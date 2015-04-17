@@ -808,17 +808,19 @@ TupleToShardPlacement(HeapTuple heapTuple, TupleDesc tupleDescriptor)
 	Datum nodePortDatum = heap_getattr(heapTuple, AttrNumShardPlacementNodePort,
 									   tupleDescriptor, &isNull);
 
-	/* FIXME: Do we need to preserve shardlength? Probably, huh? */
-
 	shardPlacement = palloc0(sizeof(ShardPlacement));
 
 	if (UseCitusMetadata)
 	{
+		Datum shardLengthDatum = heap_getattr(heapTuple, AttrNumShardPlacementShardLength,
+		                                      tupleDescriptor, &isNull);
 		shardPlacement->id = (int64) DatumGetObjectId(idDatum);
+		shardPlacement->shardLength = DatumGetInt64(shardLengthDatum);
 	}
 	else
 	{
 		shardPlacement->id = DatumGetInt64(idDatum);
+		shardPlacement->shardLength = 0;
 	}
 
 	shardPlacement->shardId = DatumGetInt64(shardIdDatum);
@@ -895,7 +897,7 @@ InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 	RangeVar *shardRangeVar = NULL;
 	TupleDesc tupleDescriptor = NULL;
 	HeapTuple heapTuple = NULL;
-	Datum values[ShardTableAttributeCount]; /* TODO: tupleDescriptor->nattrs ? */
+	Datum values[ShardTableAttributeCount];
 	bool isNulls[ShardTableAttributeCount];
 
 	/* form new shard tuple */
@@ -943,18 +945,16 @@ InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 /*
  * InsertShardPlacementRow opens the shard placement metadata table and inserts
  * a row with the given values into the table.
- *
- * TODO: Need to preserve shardlength; add parameter?
  */
 void
-InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
-						ShardState shardState, char *nodeName, uint32 nodePort)
+InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId, ShardState shardState,
+                        int64 shardLength, char *nodeName, uint32 nodePort)
 {
 	Relation shardPlacementRelation = NULL;
 	RangeVar *shardPlacementRangeVar = NULL;
 	TupleDesc tupleDescriptor = NULL;
 	HeapTuple heapTuple = NULL;
-	Datum values[ShardPlacementTableAttributeCount]; /* TODO: tupleDescriptor->nattrs ? */
+	Datum values[ShardPlacementTableAttributeCount];
 	bool isNulls[ShardPlacementTableAttributeCount];
 
 	/* form new shard placement tuple */
@@ -971,7 +971,7 @@ InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
 
 	if (UseCitusMetadata)
 	{
-		values[AttrNumShardPlacementShardLength] = Int64GetDatum(0);
+		values[AttrNumShardPlacementShardLength] = Int64GetDatum(shardLength);
 	}
 	values[AttrNumShardPlacementNodeName - 1] = CStringGetTextDatum(nodeName);
 	values[AttrNumShardPlacementNodePort - 1] = UInt32GetDatum(nodePort);
