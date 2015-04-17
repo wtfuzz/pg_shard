@@ -234,7 +234,7 @@ insert_healthy_local_shard_placement_row(PG_FUNCTION_ARGS)
 	int64 shardLength = 0;
 
 	InsertShardPlacementRow(shardPlacementId, shardId, STATE_FINALIZED, shardLength,
-	                        "localhost", 5432);
+							"localhost", 5432);
 
 	PG_RETURN_VOID();
 }

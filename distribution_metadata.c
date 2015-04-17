@@ -827,7 +827,7 @@ TupleToShardPlacement(HeapTuple heapTuple, TupleDesc tupleDescriptor)
 	if (UseCitusMetadata)
 	{
 		Datum shardLengthDatum = heap_getattr(heapTuple, AttrNumShardPlacementShardLength,
-		                                      tupleDescriptor, &isNull);
+											  tupleDescriptor, &isNull);
 		shardPlacement->id = (int64) DatumGetObjectId(idDatum);
 		shardPlacement->shardLength = DatumGetInt64(shardLengthDatum);
 	}
@@ -962,7 +962,7 @@ InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
  */
 void
 InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId, ShardState shardState,
-                        int64 shardLength, char *nodeName, uint32 nodePort)
+						int64 shardLength, char *nodeName, uint32 nodePort)
 {
 	Relation shardPlacementRelation = NULL;
 	RangeVar *shardPlacementRangeVar = NULL;

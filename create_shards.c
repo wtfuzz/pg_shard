@@ -276,7 +276,7 @@ master_create_worker_shards(PG_FUNCTION_ARGS)
 
 				shardPlacementId = NextShardPlacementId();
 				InsertShardPlacementRow(shardPlacementId, shardId, shardState,
-				                        shardLength, nodeName, nodePort);
+										shardLength, nodeName, nodePort);
 				placementCount++;
 			}
 			else

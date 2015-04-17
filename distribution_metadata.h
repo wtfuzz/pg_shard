@@ -113,8 +113,8 @@ extern void InsertPartitionRow(Oid distributedTableId, char partitionType,
 extern void InsertShardRow(Oid distributedTableId, uint64 shardId, char shardStorage,
 						   text *shardMinValue, text *shardMaxValue);
 extern void InsertShardPlacementRow(uint64 shardPlacementId, uint64 shardId,
-                                    ShardState shardState, int64 shardLength,
-                                    char *nodeName, uint32 nodePort);
+									ShardState shardState, int64 shardLength,
+									char *nodeName, uint32 nodePort);
 extern void DeleteShardPlacementRow(uint64 shardPlacementId);
 extern uint64 NextShardId(void);
 extern uint64 NextShardPlacementId(void);
