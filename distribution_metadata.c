@@ -337,15 +337,29 @@ LoadShardInterval(int64 shardId)
 
 	/* then find min/max values' actual types */
 	partitionType = PartitionType(relationId);
-	if (partitionType == HASH_PARTITION_TYPE)
+	switch (partitionType)
 	{
-		intervalTypeId = INT4OID;
-	}
-	else
-	{
-		Var *partitionColumn = PartitionColumn(relationId);
-		intervalTypeId = partitionColumn->vartype;
-		intervalTypeMod = partitionColumn->vartypmod;
+		case APPEND_PARTITION_TYPE:
+		case RANGE_PARTITION_TYPE:
+		{
+			Var *partitionColumn = PartitionColumn(relationId);
+			intervalTypeId = partitionColumn->vartype;
+			intervalTypeMod = partitionColumn->vartypmod;
+			break;
+		}
+
+		case HASH_PARTITION_TYPE:
+		{
+			intervalTypeId = INT4OID;
+			break;
+		}
+
+		default:
+		{
+			ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							errmsg("unsupported table partition type: %c",
+								   partitionType)));
+		}
 	}
 
 	getTypeInputInfo(intervalTypeId, &inputFunctionId, &typeIoParam);

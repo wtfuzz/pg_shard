@@ -26,6 +26,7 @@
 #define SHARD_STORAGE_FOREIGN 'f'
 
 /* denotes partition type of the distributed table */
+#define APPEND_PARTITION_TYPE 'a'
 #define HASH_PARTITION_TYPE 'h'
 #define RANGE_PARTITION_TYPE 'r'
 
