@@ -736,8 +736,7 @@ UpdateShardPlacementRowState(int64 shardPlacementId, ShardState newState)
 /*
  * LockShard returns after acquiring a lock for the specified shard, blocking
  * indefinitely if required. Only the ExclusiveLock and ShareLock modes are
- * supported: all others will trigger an error. Locks acquired with this method
- * are automatically released at transaction end.
+ * supported. Locks acquired with this method are released at transaction end.
  */
 void
 LockShard(int64 shardId, LOCKMODE lockMode)
@@ -745,22 +744,15 @@ LockShard(int64 shardId, LOCKMODE lockMode)
 	/* locks use 32-bit identifier fields, so split shardId */
 	uint32 keyUpperHalf = (uint32) (shardId >> 32);
 	uint32 keyLowerHalf = (uint32) shardId;
+	bool sessionLock = false;   /* we want a transaction lock */
+	bool dontWait = false;      /* block indefinitely until acquired */
 
 	LOCKTAG lockTag;
 	memset(&lockTag, 0, sizeof(LOCKTAG));
 
+	Assert(lockMode == ExclusiveLock || lockMode == ShareLock);
+
 	SET_LOCKTAG_ADVISORY(lockTag, MyDatabaseId, keyUpperHalf, keyLowerHalf, 0);
 
-	if (lockMode == ExclusiveLock || lockMode == ShareLock)
-	{
-		bool sessionLock = false;   /* we want a transaction lock */
-		bool dontWait = false;      /* block indefinitely until acquired */
-
-		(void) LockAcquire(&lockTag, lockMode, sessionLock, dontWait);
-	}
-	else
-	{
-		ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						errmsg("lockMode must be one of: ExclusiveLock, ShareLock")));
-	}
+	(void) LockAcquire(&lockTag, lockMode, sessionLock, dontWait);
 }
